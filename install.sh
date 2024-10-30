@@ -157,10 +157,29 @@ then
 	sudo apt update
 	sudo apt install ca-certificates curl gnupg lsb-release
 	sudo mkdir -m 0755 /etc/apt/keyrings
-	sudo curl -fsSL https://download.docker.com/linux/$(grep -Pow 'ID=\K[^;]*' /etc/os-release | tr -d '"')/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	releasename=$(grep -Pow 'ID=\K[^;]*' /etc/os-release | tr -d '"')
+	if [ $releasename = "linuxmint" ]
+	then
+	   releasename="ubuntu"
+	fi
+	sudo curl -fsSL https://download.docker.com/linux/${releasename}/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 	sudo chmod a+r /etc/apt/keyrings/docker.gpg
 	# Add the repository to Apt sources:
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(grep -Pow 'ID=\K[^;]*' /etc/os-release | tr -d '"') $(grep -Po 'VERSION_CODENAME=\K[^;]*' /etc/os-release) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+	codename="$(grep -Po 'VERSION_CODENAME=\K[^;]*' /etc/os-release)"
+	if [ $codename = "victoria" ]
+	then
+	   codename="jammy"
+	fi
+	if [ $codename = "wilma" ]
+	then
+	   codename="noble"
+	fi
+	releasename=$(grep -Pow 'ID=\K[^;]*' /etc/os-release | tr -d '"')
+	if [ $releasename = "linuxmint" ]
+	then
+	   releasename="ubuntu"
+	fi
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${releasename} ${codename} stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 	sudo apt update
 	sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
@@ -230,6 +249,7 @@ sleep 2
 sudo mkdir -p /usr/local/lib/docker/cli-plugins
 sudo curl -SL "https://github.com/docker/compose/releases/download/v2.27.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+sudo ln -s /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
 echo ""
 echo "Done ✓"
@@ -449,11 +469,11 @@ if [ -x "$(command -v docker)" ] && [ "$(docker compose version)" ]; then
 			exit 1
 		else
 			echo ""
-			until [ -n "$(sudo find ./certbot/live -name '$domain_name' 2>/dev/null | head -1)" ]; do
-				echo "waiting for Let's Encrypt certificates for $domain_name"
-				sleep 5s & wait ${!}
-				if sudo [ -d "./certbot/live/$domain_name" ]; then break; fi
-			done
+			# until [ -n "$(sudo find ./certbot/live -name '$domain_name' 2>/dev/null | head -1)" ]; do
+			# 	echo "waiting for Let's Encrypt certificates for $domain_name"
+			# 	sleep 5s & wait ${!}
+			# 	if sudo [ -d "./certbot/live/$domain_name" ]; then break; fi
+			# done
 			echo "Ok."
 			#until [ ! -z `docker compose ps -a --filter "status=running" --services | grep webserver` ]; do
 			#	echo "waiting starting webserver container"
